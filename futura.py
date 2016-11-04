@@ -8,10 +8,42 @@ BOT_ID = os.environ.get('BOT_ID')
 
 # constants
 AT_BOT = '<@' + BOT_ID + '>'
-EXAMPLE_COMMAND = 'find'
+commands = ('ssearch', 'details', 'credits')
 
 # instantiate Slack and Twilio clients.
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
+
+
+class Command:
+    def __init__(self):
+        pass
+
+    def ssearch(self, command, channel):
+        if command.startswith(commands):
+            response = 'Sure, let me look it up!'
+            slack_client.api_call('chat.postMessage', channel=channel,
+                                  text=response, as_user=True)
+        movies = tmdb.Search().search(command[7:])
+        slack_client.api_call('chat.postMessage', channel=channel,
+                              text=movies, as_user=True)
+
+    def details(self, command, channel):
+        if command.startswith(commands):
+            response = 'Sure, let me look it up!'
+            slack_client.api_call('chat.postMessage', channel=channel,
+                                  text=response, as_user=True)
+        details = tmdb.Movie(command[8:]).details()
+        slack_client.api_call('chat.postMessage', channel=channel,
+                              text=details, as_user=True)
+
+    def credits(self, command, channel):
+        if command.startswith(commands):
+            response = 'Sure, let me look it up!'
+            slack_client.api_call('chat.postMessage', channel=channel,
+                                  text=response, as_user=True)
+        cast, crew = tmdb.Movie(command[8:]).credits()
+        slack_client.api_call('chat.postMessage', channel=channel,
+                              text=crew, as_user=True)
 
 
 def handle_command(command, channel):
@@ -20,15 +52,13 @@ def handle_command(command, channel):
     commands. If so, then acts on the commands. If not, returns back what it
     needs for clarification.
     '''
-    response = 'Not sure what you mean. Use the *{}* command a film\'s title.'.format(EXAMPLE_COMMAND)
-    if command.startswith(EXAMPLE_COMMAND):
-        response = 'Sure, let me look it up!'
-    slack_client.api_call('chat.postMessage', channel=channel, text=response,
-                          as_user=True)
-    movie_id = tmdb.search_tmdb(command[5:])
-    response = 'The film\'s ID is {}.'.format(movie_id)
-    slack_client.api_call('chat.postMessage', channel=channel, text=response,
-                          as_user=True)
+    response = 'Try again! Call me and use one of these: {}.'.format(commands)
+    if command.startswith(commands):
+        method = getattr(Command(), command[:7])
+        method(command, channel)
+    else:
+        slack_client.api_call('chat.postMessage', channel=channel,
+                              text=response, as_user=True)
 
 
 def parse_slack_output(slack_rtm_output):
